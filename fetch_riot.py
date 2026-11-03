@@ -185,6 +185,14 @@ class RiotClient:
     def league_entries(self, puuid):
         return self.on_platform(f"/lol/league/v4/entries/by-puuid/{puuid}")
 
+    def apex_league(self, tier, queue="RANKED_SOLO_5x5"):
+        """Whole ladder for an apex tier: 'CHALLENGER', 'GRANDMASTER' or 'MASTER'."""
+        return self.on_platform(f"/lol/league/v4/{tier.lower()}leagues/by-queue/{queue}")
+
+    def league_entries_page(self, tier, division, page=1, queue="RANKED_SOLO_5x5"):
+        """One page (~205 players) of a non-apex rank, e.g. tier='DIAMOND', division='II'."""
+        return self.on_platform(f"/lol/league/v4/entries/{queue}/{tier}/{division}", {"page": page})
+
     def champion_mastery(self, puuid):
         return self.on_platform(f"/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}")
 
