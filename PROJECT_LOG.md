@@ -13,7 +13,7 @@ matchups, and so on, using the Riot API (match data) and Data Dragon (static gam
 ## Environment
 - Windows 10, PowerShell, VS Code. Python 3.15 in `.venv` (setup steps are in README.md).
 - Dependencies: `requests`, `pandas`, `numpy`, `matplotlib`.
-- GitHub: `jtjunior16/league_of_stats`. Work happens on feature branches, merged to `main` by pull request.
+- GitHub: `jtjunior16/league_of_stats`. **All work is committed directly to `main`** (no feature branches or pull requests).
 
 ## Secrets and config (`.env`, gitignored, never commit)
 - `RIOT_API_KEY`: development key. **Expires every 24 h**; regenerate at developer.riotgames.com.
@@ -91,7 +91,7 @@ When adding an analysis, give it its own `analyses/<name>/` folder and README, a
 - Timelines are a separate crawl step: needed for build order, skill order and gold/XP over time.
 - Crawl files are gzipped compact JSON (`fetch_riot.py` single-player pulls stay as indented JSON).
 - CSV for tables for now (SQLite could come later).
-- Commit to `main` only for small changes; use branches for multi-session work.
+- Work directly on `main` (decided 2026-11-03; all old branches merged and deleted).
 - Analysis results and charts go in git (`analyses/`), raw data doesn't (`data/`).
 
 ## Known issues / data gaps
@@ -131,3 +131,4 @@ When adding an analysis, give it its own `analyses/<name>/` folder and README, a
 - **2026-11-03**: Added level 6/12/18 comparison to `analyze_team_stats.py`.
 - **2026-11-03**: Added `plot_team_comps.py` (7 charts for the tag win-rate analysis).
 - **2026-11-03**: Moved results and charts to `analyses/` (tracked), with a README write-up per analysis.
+- **2026-11-03**: Merged `team_analysis` into `main`, deleted all other branches. From now on all work goes directly on `main`.
