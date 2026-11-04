@@ -12,7 +12,7 @@ matchups, and so on, using the Riot API (match data) and Data Dragon (static gam
 
 ## Environment
 - Windows 10, PowerShell, VS Code. Python 3.15 in `.venv` (setup steps are in README.md).
-- Only dependency so far: `requests`.
+- Dependencies: `requests`, `pandas`, `numpy`.
 - GitHub: `jtjunior16/league_of_stats`. Work happens on feature branches, merged to `main` by pull request.
 
 ## Secrets and config (`.env`, gitignored, never commit)
@@ -30,6 +30,8 @@ matchups, and so on, using the Riot API (match data) and Data Dragon (static gam
 | `fetch_riot.py` | `RiotClient` (key loading, routing, rate limiter, retries) + a script that pulls one player's account, rank, mastery and matches to `data/riot/`. |
 | `crawl_matches.py` | Master+ match crawler. Steps: `matches`, `timelines`, `status`. Resumable. Output in `data/riot/crawl/` (gzipped JSON + `index.csv`). |
 | `build_champion_tables.py` | Builds champion CSV tables from Data Dragon into `data/tables/`. |
+| `analyze_team_comps.py` | Team-comp win rates from champion primary/secondary tags. Options `--tier`, `--patch`, `--min-games`. Output in `data/analysis/`. |
+| `analyze_team_stats.py` | Win rate vs. team stats (sum and average of the 5 champions), for base stats and at levels 6/12/18 (`--levels`). Reads `team_comps.csv`. Options `--tier`, `--patch`. |
 | `PROJECT_LOG.md` | This file. |
 
 All of `data/` is gitignored. Everything in it can be rebuilt with the scripts above.
@@ -59,6 +61,26 @@ All of `data/` is gitignored. Everything in it can be rebuilt with the scripts a
 - Stats by level use League's growth formula: `base + per_level * (n-1) * (0.7025 + 0.0175*(n-1))`.
   Attack speed: `base * (1 + pct/100 * same multiplier)`. This is approximate, because the true formula
   uses an "attack speed ratio" that Data Dragon doesn't provide.
+
+### Team-comp analysis (`data/analysis/`, first run 2026-11-03, all 10k matches)
+- Comp = count of primary tags per team (e.g. `Assassin1-Fighter2-Mage1-Marksman1`). There are 200 distinct comps, and 47 of them have at least 100 games (81% of teams).
+- Tables: `team_comps.csv` (20k team rows), `comp_winrates.csv`, `tag_count_winrates.csv`, `matchup_winrates.csv`, `tag_regression.csv`.
+- Regression: one row per match, blue win ~ (blue minus red) weighted tag counts (primary 1, secondary 0.5).
+- First results: **red side wins 52.7%** (Challenger only: 54.4%). Tag effects are small. Only Marksman is significant (p=0.04, about -2% per extra Marksman-weighted unit). Teams with 0 marksmen win 52.1%, teams with 3+ win 35% (only 108 games). Fighter 3+ wins 53.3%.
+  Most single comps have 95% intervals that include 50%, so more matches are needed to rank comps.
+
+### Team base-stat analysis (`data/analysis/`, 2026-11-03)
+- Tables: `team_stats.csv` (sum_/avg_ per stat per team), `stat_winrates.csv`, `stat_quintile_winrates.csv`, `stat_regression.csv`.
+- Left out: crit and crit_per_level (all 0) and `ad_per_level_source`. Resource stats count Mana champions only (Viego's resource is 10000).
+  Locke's AD per level is filled with the Assassin median.
+- Results: every effect is about 1 percentage point or less per standard deviation. The smallest p-value of the 19 tests is 0.01, which isn't significant
+  after a multiple-testing correction. In the combined model only side matters. Weak trend: more attack range
+  (and so less MR growth, correlation 0.86) is slightly worse, which matches the Marksman result.
+  Base stats basically don't predict wins at Master+.
+- **By level (6 / 12 / 18)**: files with a `_lvl<N>` suffix, plus `stat_level_comparison.csv`. Both teams are assumed to be the same level.
+  Still about 1 percentage point per SD at every level. Trends: the effect of HP and HP regen fades with level (+1.0 -> +0.6 points per SD), and MR grows
+  (+1.0 -> +1.25, p=0.013 at 18). Mana is slightly negative and attack range -1.2 at all levels (range doesn't grow). Nothing is significant
+  after a multiple-testing correction. Mainly this reflects melee/tanky champions vs. ranged mana champions.
 
 ## Decisions
 - Master+ only, split 5k / 3k / 2k: every tier gets enough matches to analyse on its own.
@@ -91,10 +113,14 @@ All of `data/` is gitignored. Everything in it can be rebuilt with the scripts a
   joined to the champion tables on `key`.
 - [ ] Item, rune and summoner spell lookup tables from Data Dragon.
 - [ ] Timeline tables: item purchase order, skill order, gold/XP at 10 and 15 min.
-- [ ] Analyses: champion win/pick rates, builds, matchups.
+- [ ] Analyses: champion win/pick rates, builds, matchups. (Team-comp tag analysis done.)
+- [ ] Team comps: try role-aware comps (tag per `teamPosition`), and check the red-side advantage.
 - [ ] Make the retry handle read timeouts (issue 5).
 
 ## Session history
 - **2026-11-02/03**: Set up the repo and venv. Wrote `fetch_ddragon.py` and `fetch_riot.py` (merged via PR #1).
   Wrote `crawl_matches.py` (branch `match_crawler`) and started the 10k Master+ crawl.
   Built the champion tables (branch `champion_tables`, created from `match_crawler`). Started this log.
+- **2026-11-03**: Added `analyze_team_comps.py` (team-comp win rate by champion tags).
+- **2026-11-03**: Added `analyze_team_stats.py` (team base stats vs. win rate).
+- **2026-11-03**: Added level 6/12/18 comparison to `analyze_team_stats.py`.
