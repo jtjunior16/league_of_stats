@@ -12,7 +12,7 @@ matchups, and so on, using the Riot API (match data) and Data Dragon (static gam
 
 ## Environment
 - Windows 10, PowerShell, VS Code. Python 3.15 in `.venv` (setup steps are in README.md).
-- Dependencies: `requests`, `pandas`, `numpy`.
+- Dependencies: `requests`, `pandas`, `numpy`, `matplotlib`.
 - GitHub: `jtjunior16/league_of_stats`. Work happens on feature branches, merged to `main` by pull request.
 
 ## Secrets and config (`.env`, gitignored, never commit)
@@ -30,11 +30,15 @@ matchups, and so on, using the Riot API (match data) and Data Dragon (static gam
 | `fetch_riot.py` | `RiotClient` (key loading, routing, rate limiter, retries) + a script that pulls one player's account, rank, mastery and matches to `data/riot/`. |
 | `crawl_matches.py` | Master+ match crawler. Steps: `matches`, `timelines`, `status`. Resumable. Output in `data/riot/crawl/` (gzipped JSON + `index.csv`). |
 | `build_champion_tables.py` | Builds champion CSV tables from Data Dragon into `data/tables/`. |
-| `analyze_team_comps.py` | Team-comp win rates from champion primary/secondary tags. Options `--tier`, `--patch`, `--min-games`. Output in `data/analysis/`. |
+| `analyze_team_comps.py` | Team-comp win rates from champion primary/secondary tags. Options `--tier`, `--patch`, `--min-games`. Results in `analyses/team_comps/tables/`. |
 | `analyze_team_stats.py` | Win rate vs. team stats (sum and average of the 5 champions), for base stats and at levels 6/12/18 (`--levels`). Reads `team_comps.csv`. Options `--tier`, `--patch`. |
+| `plot_team_comps.py` | Charts (PNG) of the team-comp analysis into `analyses/team_comps/figures/`: tag-count panels, tag effects, comp win rate vs. games, comp ranking, two-tag heatmaps (`--heatmaps A:B`). |
 | `PROJECT_LOG.md` | This file. |
 
 All of `data/` is gitignored. Everything in it can be rebuilt with the scripts above.
+**`analyses/` is in git:** one folder per analysis with a README write-up (findings plus embedded charts), `tables/` and `figures/`.
+Large intermediate tables (`team_comps.csv`, `team_stats*.csv`, 20k rows each) stay in `data/analysis/` (gitignored).
+When adding an analysis, give it its own `analyses/<name>/` folder and README, and add a row to `analyses/README.md`.
 
 ## Data built so far
 ### Match crawl (`data/riot/crawl/`)
@@ -62,14 +66,14 @@ All of `data/` is gitignored. Everything in it can be rebuilt with the scripts a
   Attack speed: `base * (1 + pct/100 * same multiplier)`. This is approximate, because the true formula
   uses an "attack speed ratio" that Data Dragon doesn't provide.
 
-### Team-comp analysis (`data/analysis/`, first run 2026-11-03, all 10k matches)
+### Team-comp analysis (`analyses/team_comps/`, first run 2026-11-03, all 10k matches)
 - Comp = count of primary tags per team (e.g. `Assassin1-Fighter2-Mage1-Marksman1`). There are 200 distinct comps, and 47 of them have at least 100 games (81% of teams).
 - Tables: `team_comps.csv` (20k team rows), `comp_winrates.csv`, `tag_count_winrates.csv`, `matchup_winrates.csv`, `tag_regression.csv`.
 - Regression: one row per match, blue win ~ (blue minus red) weighted tag counts (primary 1, secondary 0.5).
 - First results: **red side wins 52.7%** (Challenger only: 54.4%). Tag effects are small. Only Marksman is significant (p=0.04, about -2% per extra Marksman-weighted unit). Teams with 0 marksmen win 52.1%, teams with 3+ win 35% (only 108 games). Fighter 3+ wins 53.3%.
   Most single comps have 95% intervals that include 50%, so more matches are needed to rank comps.
 
-### Team base-stat analysis (`data/analysis/`, 2026-11-03)
+### Team base-stat analysis (`analyses/team_stats/`, 2026-11-03)
 - Tables: `team_stats.csv` (sum_/avg_ per stat per team), `stat_winrates.csv`, `stat_quintile_winrates.csv`, `stat_regression.csv`.
 - Left out: crit and crit_per_level (all 0) and `ad_per_level_source`. Resource stats count Mana champions only (Viego's resource is 10000).
   Locke's AD per level is filled with the Assassin median.
@@ -88,6 +92,7 @@ All of `data/` is gitignored. Everything in it can be rebuilt with the scripts a
 - Crawl files are gzipped compact JSON (`fetch_riot.py` single-player pulls stay as indented JSON).
 - CSV for tables for now (SQLite could come later).
 - Commit to `main` only for small changes; use branches for multi-session work.
+- Analysis results and charts go in git (`analyses/`), raw data doesn't (`data/`).
 
 ## Known issues / data gaps
 1. **Data Dragon `attackdamageperlevel` = 0 for every champion** in 2026 patches (checked 16.10 and 16.22;
@@ -124,3 +129,5 @@ All of `data/` is gitignored. Everything in it can be rebuilt with the scripts a
 - **2026-11-03**: Added `analyze_team_comps.py` (team-comp win rate by champion tags).
 - **2026-11-03**: Added `analyze_team_stats.py` (team base stats vs. win rate).
 - **2026-11-03**: Added level 6/12/18 comparison to `analyze_team_stats.py`.
+- **2026-11-03**: Added `plot_team_comps.py` (7 charts for the tag win-rate analysis).
+- **2026-11-03**: Moved results and charts to `analyses/` (tracked), with a README write-up per analysis.

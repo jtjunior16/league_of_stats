@@ -9,8 +9,8 @@ A team's "comp" is the count of its champions' primary tags, for example
 Assassin1-Fighter2-Mage1-Marksman1. Secondary tags are used in the regression
 as weighted counts (primary tag = 1.0, secondary tag = 0.5).
 
-Writes to data/analysis/ (filtered runs get a suffix, e.g. comp_winrates_challenger.csv):
-    team_comps.csv          one row per team per match (always all matches, no filter)
+Writes data/analysis/team_comps.csv (one row per team per match, all matches; gitignored),
+and results to analyses/team_comps/tables/ (in git; filtered runs get a suffix, e.g. comp_winrates_challenger.csv):
     comp_winrates.csv       win rate per comp, with Wilson 95% interval
     tag_count_winrates.csv  win rate by number of champions with each primary tag
     matchup_winrates.csv    comp vs. comp win rate (sparse; mirror matchups dropped)
@@ -34,7 +34,8 @@ from crawl_matches import read_json_gz, paths
 
 ROOT = Path(__file__).parent
 TABLES_DIR = ROOT / "data" / "tables"
-ANALYSIS_DIR = ROOT / "data" / "analysis"
+ANALYSIS_DIR = ROOT / "data" / "analysis"            # large intermediate tables (gitignored)
+RESULTS_DIR = ROOT / "analyses" / "team_comps"       # results, charts and write-up (in git)
 
 TAGS = ["Assassin", "Fighter", "Mage", "Marksman", "Support", "Tank"]
 SECONDARY_WEIGHT = 0.5
@@ -54,12 +55,12 @@ def wilson(wins, games, z=1.96):
     return centre - half, centre + half
 
 
-def save(df, name, suffix=""):
-    ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
+def save(df, name, suffix="", folder=RESULTS_DIR / "tables"):
+    folder.mkdir(parents=True, exist_ok=True)
     stem, ext = name.rsplit(".", 1)
-    path = ANALYSIS_DIR / f"{stem}{suffix}.{ext}"
+    path = folder / f"{stem}{suffix}.{ext}"
     df.to_csv(path, index=False, encoding="utf-8-sig")
-    print(f"  {path.name}: {len(df)} rows")
+    print(f"  {path.relative_to(ROOT)}: {len(df)} rows")
 
 
 def comp_key(primary_tags):
@@ -232,7 +233,7 @@ def main():
 
     print("Building team table...")
     teams = build_team_table()
-    save(teams, "team_comps.csv")
+    save(teams, "team_comps.csv", folder=ANALYSIS_DIR)
 
     suffix = ""
     if args.tier:

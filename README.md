@@ -1,6 +1,8 @@
 # league_of_stats
 League of Legends data analysis for fun and for practice.
 
+**Results:** see [analyses/](analyses/README.md) for findings and charts.
+
 ## Setup
 Run these in PowerShell from the project folder:
 

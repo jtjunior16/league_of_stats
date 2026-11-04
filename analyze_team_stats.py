@@ -24,8 +24,8 @@ Stats come from data/tables/champion_tags.csv. Adjustments:
 Every team has 5 champions, so avg = sum / 5 for all stats except the resource ones.
 Sum and average give the same results apart from those; both are written so either can be used.
 
-Writes to data/analysis/ (level runs get _lvl<N>, filtered runs get a tier/patch suffix):
-    team_stats.csv               one row per team: sum_<stat>, avg_<stat>, win
+Writes data/analysis/team_stats[_lvl<N>].csv (one row per team: sum_<stat>, avg_<stat>, win; gitignored),
+and results to analyses/team_stats/tables/ (in git; level runs get _lvl<N>, filtered runs a tier/patch suffix):
     stat_winrates.csv            per stat: winners vs. losers, "higher stat wins" rate, 1-SD effect
     stat_quintile_winrates.csv   team win rate per quintile of each stat (avg)
     stat_regression.csv          all stats together (blue minus red, standardized)
@@ -45,6 +45,7 @@ from analyze_team_comps import ANALYSIS_DIR, TABLES_DIR, logistic_irls, save, wi
 from build_champion_tables import growth
 
 ROOT = Path(__file__).parent
+RESULTS_TABLES = ROOT / "analyses" / "team_stats" / "tables"   # in git
 DDRAGON_DIR = ROOT / "data" / "ddragon"
 
 STATS = [
@@ -230,13 +231,13 @@ def run(teams, champ_stats, label, file_suffix, args):
     """Build team stats for one stat set, write the 4 analysis tables, return the per-stat table."""
     stats = list(champ_stats.columns)
     team_stats = build_team_stats(teams, champ_stats)
-    save(team_stats, "team_stats.csv", file_suffix)
+    save(team_stats, "team_stats.csv", file_suffix, folder=ANALYSIS_DIR)
     team_stats, filter_suffix = filter_teams(team_stats, args)
     suffix = file_suffix + filter_suffix
     single = stat_winrates(team_stats, stats)
-    save(single, "stat_winrates.csv", suffix)
-    save(stat_quintiles(team_stats, stats), "stat_quintile_winrates.csv", suffix)
-    save(stat_regression(team_stats, stats), "stat_regression.csv", suffix)
+    save(single, "stat_winrates.csv", suffix, folder=RESULTS_TABLES)
+    save(stat_quintiles(team_stats, stats), "stat_quintile_winrates.csv", suffix, folder=RESULTS_TABLES)
+    save(stat_regression(team_stats, stats), "stat_regression.csv", suffix, folder=RESULTS_TABLES)
     return single.assign(level=label), filter_suffix
 
 
@@ -268,7 +269,7 @@ def main():
     cols = ["stat", "level", "winner_avg", "loser_avg", "higher_sum_win_rate",
             "higher_ci_low", "higher_ci_high", "coef_per_sd", "win_rate_change_per_sd", "p_value"]
     compare = compare[cols].sort_values(["stat", "level"], key=lambda c: c.astype(int) if c.name == "level" else c)
-    save(compare, "stat_level_comparison.csv", filter_suffix)
+    save(compare, "stat_level_comparison.csv", filter_suffix, folder=RESULTS_TABLES)
 
     pd.set_option("display.width", 200)
     print(f"\nWin rate change per 1 SD of team difference (p-value in brackets), {len(args.levels)} levels:")
