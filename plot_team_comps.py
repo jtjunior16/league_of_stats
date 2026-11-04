@@ -70,14 +70,15 @@ def fifty_line(ax, axis="y"):
     (ax.axhline if axis == "y" else ax.axvline)(0.5, color=INK_2, linewidth=0.9, zorder=1)
 
 
-def finish(fig, name, title, subtitle, note=None):
+def finish(fig, name, title, subtitle, note=None, folder=None):
     height = fig.get_figheight()
     fig.text(0.01, 1 - 0.1 / height, title, ha="left", va="top", fontsize=14, fontweight="bold", color=INK)
     fig.text(0.01, 1 - 0.42 / height, subtitle, ha="left", va="top", fontsize=10, color=INK_2)
     if note:
         fig.text(0.01, 0.005, note, ha="left", va="bottom", fontsize=8.5, color=MUTED)
-    FIG_DIR.mkdir(parents=True, exist_ok=True)
-    path = FIG_DIR / name
+    folder = folder or FIG_DIR
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / name
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"  {path.relative_to(ROOT)}")
